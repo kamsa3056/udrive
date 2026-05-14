@@ -102,16 +102,20 @@ files.get('/:fileId/info', async (c) => {
   let uploaderEmail = null;
   let uploaderName = null;
 
-  const owner = await db.prepare('SELECT account_id FROM file_owners WHERE file_id = ?').bind(fileId).first();
-  if (owner) {
-    const acc = await db.prepare('SELECT email, display_name FROM accounts WHERE id = ?').bind(owner.account_id).first();
-    if (acc) { uploaderEmail = acc.email; uploaderName = acc.display_name; }
-  } else {
-    const ownerEmail = await drive.getFileOwnerEmail(c.env, db, primaryId, fileId);
-    if (ownerEmail) {
-      uploaderEmail = ownerEmail;
-      const acc = await db.prepare('SELECT display_name FROM accounts WHERE email = ?').bind(ownerEmail).first();
-      if (acc) uploaderName = acc.display_name;
+  const canViewUploader = user.role === 'master' || user.permissions.includes('drive:view_uploader');
+
+  if (canViewUploader) {
+    const owner = await db.prepare('SELECT account_id FROM file_owners WHERE file_id = ?').bind(fileId).first();
+    if (owner) {
+      const acc = await db.prepare('SELECT email, display_name FROM accounts WHERE id = ?').bind(owner.account_id).first();
+      if (acc) { uploaderEmail = acc.email; uploaderName = acc.display_name; }
+    } else {
+      const ownerEmail = await drive.getFileOwnerEmail(c.env, db, primaryId, fileId);
+      if (ownerEmail) {
+        uploaderEmail = ownerEmail;
+        const acc = await db.prepare('SELECT display_name FROM accounts WHERE email = ?').bind(ownerEmail).first();
+        if (acc) uploaderName = acc.display_name;
+      }
     }
   }
 

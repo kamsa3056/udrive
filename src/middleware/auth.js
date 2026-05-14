@@ -6,7 +6,7 @@ function generateToken() {
 
 const ALL_PERMISSIONS = [
   'drive:view', 'drive:upload', 'drive:download', 'drive:delete', 'drive:rename',
-  'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview',
+  'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview', 'drive:view_uploader',
   'trash:view', 'trash:restore', 'trash:permanent_delete', 'trash:empty',
   'accounts:view', 'accounts:add', 'accounts:remove', 'accounts:set_primary',
   'accounts:refresh', 'accounts:import_export', 'accounts:color',
@@ -14,7 +14,7 @@ const ALL_PERMISSIONS = [
 ];
 
 const PERMISSION_GROUPS = {
-  drive: ['drive:view', 'drive:upload', 'drive:download', 'drive:delete', 'drive:rename', 'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview'],
+  drive: ['drive:view', 'drive:upload', 'drive:download', 'drive:delete', 'drive:rename', 'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview', 'drive:view_uploader'],
   trash: ['trash:view', 'trash:restore', 'trash:permanent_delete', 'trash:empty'],
   accounts: ['accounts:view', 'accounts:add', 'accounts:remove', 'accounts:set_primary', 'accounts:refresh', 'accounts:import_export', 'accounts:color'],
   settings: ['settings:view', 'settings:edit', 'settings:keepalive', 'settings:database']

@@ -15,7 +15,8 @@ const PERMISSION_GROUPS = [
       { key: 'drive:create_folder', label: 'Create Folder' },
       { key: 'drive:move', label: 'Move Files' },
       { key: 'drive:copy', label: 'Copy Files' },
-      { key: 'drive:preview', label: 'Preview Files' }
+      { key: 'drive:preview', label: 'Preview Files' },
+      { key: 'drive:view_uploader', label: 'View Uploader Info' }
     ]
   },
   {
