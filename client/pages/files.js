@@ -5,6 +5,7 @@ import { showContextMenu, hideContextMenu } from '../components/context-menu.js'
 import { showToast } from '../components/toast.js';
 import { addToUploadQueue, onUploadComplete } from '../components/upload-queue.js';
 import { renderSidebar } from '../components/sidebar.js';
+import { hasPermission } from '../auth-state.js';
 
 let folderStack = [];
 let currentFiles = [];
@@ -502,33 +503,46 @@ function showFileContextMenu(x, y, dataset) {
       window.location.hash = `/?folderId=${dataset.id}`;
     }});
   } else {
-    if (isPreviewable(dataset.mime)) {
+    if (isPreviewable(dataset.mime) && hasPermission('drive:preview')) {
       items.push({ icon: 'visibility', label: 'Preview', action: 'preview', handler: () => openPreview(dataset.id, dataset.name, dataset.mime) });
     }
-    items.push({ icon: 'download', label: 'Download', action: 'download', handler: () => downloadFileAction(dataset.id, dataset.name) });
+    if (hasPermission('drive:download')) {
+      items.push({ icon: 'download', label: 'Download', action: 'download', handler: () => downloadFileAction(dataset.id, dataset.name) });
+    }
   }
 
   items.push({ icon: 'info', label: 'Info', action: 'info', handler: () => showFileInfo(dataset.id) });
-  items.push({ icon: 'content_copy', label: 'Copy', action: 'copy', handler: () => {
-    if (!selectedFiles.has(dataset.id)) {
-      selectedFiles.clear();
-      selectedFiles.add(dataset.id);
-      updateSelectionUI();
-    }
-    setClipboard('copy');
-  }});
-  items.push({ icon: 'content_cut', label: 'Cut', action: 'cut', handler: () => {
-    if (!selectedFiles.has(dataset.id)) {
-      selectedFiles.clear();
-      selectedFiles.add(dataset.id);
-      updateSelectionUI();
-    }
-    setClipboard('cut');
-  }});
-  items.push({ icon: 'drive_file_rename_outline', label: 'Rename', action: 'rename', handler: () => renameAction(dataset.id, dataset.name) });
-  items.push({ icon: 'drive_file_move', label: 'Move', action: 'move', handler: () => showToast('Move: select destination folder', 'info') });
-  items.push({ divider: true });
-  items.push({ icon: 'delete', label: 'Delete', action: 'delete', handler: () => deleteAction(dataset.id, dataset.name) });
+
+  if (hasPermission('drive:copy')) {
+    items.push({ icon: 'content_copy', label: 'Copy', action: 'copy', handler: () => {
+      if (!selectedFiles.has(dataset.id)) {
+        selectedFiles.clear();
+        selectedFiles.add(dataset.id);
+        updateSelectionUI();
+      }
+      setClipboard('copy');
+    }});
+  }
+
+  if (hasPermission('drive:move')) {
+    items.push({ icon: 'content_cut', label: 'Cut', action: 'cut', handler: () => {
+      if (!selectedFiles.has(dataset.id)) {
+        selectedFiles.clear();
+        selectedFiles.add(dataset.id);
+        updateSelectionUI();
+      }
+      setClipboard('cut');
+    }});
+  }
+
+  if (hasPermission('drive:rename')) {
+    items.push({ icon: 'drive_file_rename_outline', label: 'Rename', action: 'rename', handler: () => renameAction(dataset.id, dataset.name) });
+  }
+
+  if (hasPermission('drive:delete')) {
+    items.push({ divider: true });
+    items.push({ icon: 'delete', label: 'Delete', action: 'delete', handler: () => deleteAction(dataset.id, dataset.name) });
+  }
 
   showContextMenu(x, y, items);
 }
@@ -737,33 +751,33 @@ export function renderFilesPage() {
               <span class="material-icons-outlined text-base md:text-lg">content_paste</span>
               <span class="hidden sm:inline">Paste</span>
             </button>
-            <button id="btn-new-folder" class="btn-secondary">
+            ${hasPermission('drive:create_folder') ? `<button id="btn-new-folder" class="btn-secondary">
               <span class="material-icons-outlined text-base md:text-lg">create_new_folder</span>
               <span class="hidden sm:inline">New Folder</span>
-            </button>
-            <button id="btn-upload" class="btn-primary">
+            </button>` : ''}
+            ${hasPermission('drive:upload') ? `<button id="btn-upload" class="btn-primary">
               <span class="material-icons-outlined text-base md:text-lg">upload</span>
               <span class="hidden sm:inline">Upload</span>
             </button>
-            <input type="file" id="file-input" class="hidden" multiple>
+            <input type="file" id="file-input" class="hidden" multiple>` : ''}
           </div>
         </div>
 
         <div id="bulk-actions" class="hidden mb-4 flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <span class="selected-count text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300">0 selected</span>
           <div class="flex items-center gap-1 ml-auto">
-            <button id="bulk-copy" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Copy selected">
+            ${hasPermission('drive:copy') ? `<button id="bulk-copy" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Copy selected">
               <span class="material-icons-outlined text-lg">content_copy</span>
-            </button>
-            <button id="bulk-cut" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Cut selected">
+            </button>` : ''}
+            ${hasPermission('drive:move') ? `<button id="bulk-cut" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Cut selected">
               <span class="material-icons-outlined text-lg">content_cut</span>
-            </button>
-            <button id="bulk-download" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Download selected">
+            </button>` : ''}
+            ${hasPermission('drive:download') ? `<button id="bulk-download" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Download selected">
               <span class="material-icons-outlined text-lg">download</span>
-            </button>
-            <button id="bulk-delete" class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 transition-colors" title="Delete selected">
+            </button>` : ''}
+            ${hasPermission('drive:delete') ? `<button id="bulk-delete" class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 transition-colors" title="Delete selected">
               <span class="material-icons-outlined text-lg">delete</span>
-            </button>
+            </button>` : ''}
             <button id="bulk-clear" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Clear selection">
               <span class="material-icons-outlined text-lg">close</span>
             </button>
@@ -793,11 +807,11 @@ export function renderFilesPage() {
     renderFilesPage();
   });
 
-  main.querySelector('#btn-upload').addEventListener('click', () => {
+  main.querySelector('#btn-upload')?.addEventListener('click', () => {
     main.querySelector('#file-input').click();
   });
 
-  main.querySelector('#file-input').addEventListener('change', async (e) => {
+  main.querySelector('#file-input')?.addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files.length) return;
 
@@ -812,7 +826,7 @@ export function renderFilesPage() {
     e.target.value = '';
   });
 
-  main.querySelector('#btn-new-folder').addEventListener('click', async () => {
+  main.querySelector('#btn-new-folder')?.addEventListener('click', async () => {
     const name = prompt('Folder name:');
     if (!name) return;
 
@@ -825,10 +839,10 @@ export function renderFilesPage() {
     }
   });
 
-  main.querySelector('#bulk-delete').addEventListener('click', bulkDelete);
-  main.querySelector('#bulk-download').addEventListener('click', bulkDownload);
-  main.querySelector('#bulk-copy').addEventListener('click', () => setClipboard('copy'));
-  main.querySelector('#bulk-cut').addEventListener('click', () => setClipboard('cut'));
+  main.querySelector('#bulk-delete')?.addEventListener('click', bulkDelete);
+  main.querySelector('#bulk-download')?.addEventListener('click', bulkDownload);
+  main.querySelector('#bulk-copy')?.addEventListener('click', () => setClipboard('copy'));
+  main.querySelector('#bulk-cut')?.addEventListener('click', () => setClipboard('cut'));
   main.querySelector('#bulk-clear').addEventListener('click', clearSelection);
   main.querySelector('#btn-paste').addEventListener('click', pasteFiles);
 
