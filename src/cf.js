@@ -12,6 +12,7 @@ const SCHEMA = `
     is_primary INTEGER DEFAULT 0,
     storage_limit INTEGER DEFAULT 16106127360,
     storage_used INTEGER DEFAULT 0,
+    file_count INTEGER DEFAULT 0,
     card_color TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
@@ -73,6 +74,17 @@ async function ensureMigrated(db) {
   for (const sql of statements) {
     await db.prepare(sql).run();
   }
+
+  // Migrations for existing D1 databases
+  const migrations = [
+    "ALTER TABLE accounts ADD COLUMN file_count INTEGER DEFAULT 0",
+    "ALTER TABLE accounts ADD COLUMN card_color TEXT DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN session_timeout_hours INTEGER DEFAULT 24"
+  ];
+  for (const sql of migrations) {
+    try { await db.prepare(sql).run(); } catch {}
+  }
+
   migrated = true;
 }
 
