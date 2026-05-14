@@ -42,7 +42,9 @@ files.get('/trash/list', async (c) => {
 
 files.get('/', async (c) => {
   const user = c.get('user');
-  const err = requireAuth(c, user);
+  let err = requireAuth(c, user);
+  if (err) return err;
+  err = requirePermission(c, user, 'drive:view');
   if (err) return err;
 
   const db = c.get("db");

@@ -7,6 +7,7 @@ const PERMISSION_GROUPS = [
     label: 'Drive Page',
     icon: 'folder',
     permissions: [
+      { key: 'drive:view', label: 'View Files' },
       { key: 'drive:upload', label: 'Upload Files' },
       { key: 'drive:download', label: 'Download Files' },
       { key: 'drive:delete', label: 'Delete Files' },
