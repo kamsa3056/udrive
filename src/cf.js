@@ -1,15 +1,7 @@
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { createApp } from './app.js';
+import { runKeepAlive } from './services/keep-alive.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dbPath = join(__dirname, 'udrive.db');
-
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
+const SCHEMA = `
   CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
@@ -24,21 +16,17 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
-
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
-
   INSERT OR IGNORE INTO settings (key, value) VALUES ('shared_folder_id', '');
   INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'auto');
-
   CREATE TABLE IF NOT EXISTS file_owners (
     file_id TEXT PRIMARY KEY,
     account_id INTEGER NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
   );
-
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -47,7 +35,6 @@ db.exec(`
     session_timeout_hours INTEGER DEFAULT 24,
     created_at TEXT DEFAULT (datetime('now'))
   );
-
   CREATE TABLE IF NOT EXISTS user_permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -55,28 +42,42 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, permission)
   );
-
   CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
     expires_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-`);
+`;
 
-// Migrations
-try {
-  db.prepare("SELECT card_color FROM accounts LIMIT 1").get();
-} catch {
-  db.exec("ALTER TABLE accounts ADD COLUMN card_color TEXT DEFAULT ''");
+let migrated = false;
+
+async function ensureMigrated(db) {
+  if (migrated) return;
+  const statements = SCHEMA.split(';').map(s => s.trim()).filter(s => s.length > 0);
+  for (const sql of statements) {
+    await db.prepare(sql).run();
+  }
+  migrated = true;
 }
 
-try {
-  db.prepare("SELECT session_timeout_hours FROM users LIMIT 1").get();
-} catch {
-  db.exec("ALTER TABLE users ADD COLUMN session_timeout_hours INTEGER DEFAULT 24");
-}
+const app = createApp((env) => env.DB);
 
-db.exec("UPDATE accounts SET card_color = '' WHERE card_color IS NULL");
+// Auto-migrate on first request
+app.use('*', async (c, next) => {
+  await ensureMigrated(c.env.DB);
+  await next();
+});
 
-export default db;
+// Fallback: let CF Pages handle static files
+app.all('*', (c) => {
+  return c.env.ASSETS.fetch(c.req.raw);
+});
+
+export default {
+  fetch: app.fetch,
+  async scheduled(event, env, ctx) {
+    await ensureMigrated(env.DB);
+    ctx.waitUntil(runKeepAlive(env, env.DB));
+  }
+};

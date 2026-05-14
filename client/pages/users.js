@@ -1,23 +1,134 @@
 import { api } from '../api.js';
 import { showToast } from '../components/toast.js';
 
-const ALL_PERMISSIONS = [
-  { key: 'page:drive', label: 'Drive Page', group: 'Pages' },
-  { key: 'page:trash', label: 'Trash Page', group: 'Pages' },
-  { key: 'page:accounts', label: 'Accounts Page', group: 'Pages' },
-  { key: 'page:settings', label: 'Settings Page', group: 'Pages' },
-  { key: 'action:upload', label: 'Upload Files', group: 'Actions' },
-  { key: 'action:download', label: 'Download Files', group: 'Actions' },
-  { key: 'action:delete', label: 'Delete Files', group: 'Actions' },
-  { key: 'action:create_folder', label: 'Create Folder', group: 'Actions' },
-  { key: 'action:rename', label: 'Rename', group: 'Actions' },
-  { key: 'action:move', label: 'Move Files', group: 'Actions' },
-  { key: 'action:copy', label: 'Copy Files', group: 'Actions' },
-  { key: 'action:restore', label: 'Restore from Trash', group: 'Actions' },
-  { key: 'action:permanent_delete', label: 'Permanent Delete', group: 'Actions' },
-  { key: 'action:manage_accounts', label: 'Manage Accounts', group: 'Actions' },
-  { key: 'action:import_export', label: 'Import/Export Config', group: 'Actions' }
+const PERMISSION_GROUPS = [
+  {
+    key: 'drive',
+    label: 'Drive Page',
+    icon: 'folder',
+    permissions: [
+      { key: 'drive:upload', label: 'Upload Files' },
+      { key: 'drive:download', label: 'Download Files' },
+      { key: 'drive:delete', label: 'Delete Files' },
+      { key: 'drive:rename', label: 'Rename Files/Folders' },
+      { key: 'drive:create_folder', label: 'Create Folder' },
+      { key: 'drive:move', label: 'Move Files' },
+      { key: 'drive:copy', label: 'Copy Files' },
+      { key: 'drive:preview', label: 'Preview Files' }
+    ]
+  },
+  {
+    key: 'trash',
+    label: 'Trash Page',
+    icon: 'delete',
+    permissions: [
+      { key: 'trash:view', label: 'View Trash' },
+      { key: 'trash:restore', label: 'Restore Files' },
+      { key: 'trash:permanent_delete', label: 'Permanent Delete' },
+      { key: 'trash:empty', label: 'Empty Trash' }
+    ]
+  },
+  {
+    key: 'accounts',
+    label: 'Accounts Page',
+    icon: 'people',
+    permissions: [
+      { key: 'accounts:view', label: 'View Accounts' },
+      { key: 'accounts:add', label: 'Add Account' },
+      { key: 'accounts:remove', label: 'Remove Account' },
+      { key: 'accounts:set_primary', label: 'Set Primary' },
+      { key: 'accounts:refresh', label: 'Refresh Storage' },
+      { key: 'accounts:import_export', label: 'Import/Export Config' },
+      { key: 'accounts:color', label: 'Change Color' }
+    ]
+  },
+  {
+    key: 'settings',
+    label: 'Settings Page',
+    icon: 'settings',
+    permissions: [
+      { key: 'settings:view', label: 'View Settings' },
+      { key: 'settings:edit', label: 'Edit Settings' },
+      { key: 'settings:keepalive', label: 'Keep-Alive' },
+      { key: 'settings:database', label: 'Database Download/Upload' }
+    ]
+  }
 ];
+
+function renderPermissionGroups(prefix, checkedPerms = [], allChecked = true) {
+  return PERMISSION_GROUPS.map(group => {
+    const groupPerms = group.permissions.map(p => p.key);
+    const allGroupChecked = groupPerms.every(p => checkedPerms.includes(p));
+    const someGroupChecked = groupPerms.some(p => checkedPerms.includes(p));
+
+    return `
+      <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer select-none ${prefix}-group-header" data-group="${group.key}">
+          <input type="checkbox" class="${prefix}-group-cb rounded border-gray-300 dark:border-gray-600" data-group="${group.key}" ${allChecked || allGroupChecked ? 'checked' : someGroupChecked ? 'data-indeterminate="true"' : ''}>
+          <span class="material-icons-outlined text-base text-gray-500">${group.icon}</span>
+          <span class="text-sm font-medium flex-1">${group.label}</span>
+          <span class="material-icons-outlined text-base text-gray-400 ${prefix}-chevron" data-group="${group.key}">expand_more</span>
+        </div>
+        <div class="${prefix}-group-body hidden px-3 py-2 space-y-1" data-group="${group.key}">
+          ${group.permissions.map(p => `
+            <label class="flex items-center gap-2 text-sm cursor-pointer pl-6">
+              <input type="checkbox" class="${prefix}-perm-cb rounded border-gray-300 dark:border-gray-600" value="${p.key}" ${allChecked || checkedPerms.includes(p.key) ? 'checked' : ''}>
+              ${p.label}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function bindPermissionGroupEvents(container, prefix) {
+  container.querySelectorAll(`.${prefix}-group-header`).forEach(header => {
+    header.addEventListener('click', (e) => {
+      if (e.target.type === 'checkbox') return;
+      const group = header.dataset.group;
+      const body = container.querySelector(`.${prefix}-group-body[data-group="${group}"]`);
+      const chevron = container.querySelector(`.${prefix}-chevron[data-group="${group}"]`);
+      body.classList.toggle('hidden');
+      chevron.textContent = body.classList.contains('hidden') ? 'expand_more' : 'expand_less';
+    });
+  });
+
+  container.querySelectorAll(`.${prefix}-group-cb`).forEach(cb => {
+    cb.addEventListener('change', () => {
+      const group = cb.dataset.group;
+      const body = container.querySelector(`.${prefix}-group-body[data-group="${group}"]`);
+      body.querySelectorAll(`.${prefix}-perm-cb`).forEach(pcb => { pcb.checked = cb.checked; });
+    });
+  });
+
+  container.querySelectorAll(`.${prefix}-perm-cb`).forEach(cb => {
+    cb.addEventListener('change', () => {
+      const group = cb.value.split(':')[0];
+      updateGroupCheckbox(container, prefix, group);
+    });
+  });
+
+  // Set initial indeterminate states
+  container.querySelectorAll(`.${prefix}-group-cb`).forEach(cb => {
+    if (cb.dataset.indeterminate === 'true') {
+      cb.indeterminate = true;
+      cb.removeAttribute('data-indeterminate');
+    }
+  });
+}
+
+function updateGroupCheckbox(container, prefix, group) {
+  const groupCb = container.querySelector(`.${prefix}-group-cb[data-group="${group}"]`);
+  const permCbs = container.querySelectorAll(`.${prefix}-group-body[data-group="${group}"] .${prefix}-perm-cb`);
+  const checked = [...permCbs].filter(cb => cb.checked).length;
+  groupCb.checked = checked === permCbs.length;
+  groupCb.indeterminate = checked > 0 && checked < permCbs.length;
+}
+
+function getSelectedPermissions(container, prefix) {
+  return [...container.querySelectorAll(`.${prefix}-perm-cb:checked`)].map(cb => cb.value);
+}
 
 export function renderUsersPage() {
   const main = document.getElementById('main-content');
@@ -56,29 +167,8 @@ export function renderUsersPage() {
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
-            <div class="space-y-3">
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Pages</p>
-                <div class="space-y-1">
-                  ${ALL_PERMISSIONS.filter(p => p.group === 'Pages').map(p => `
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" class="new-user-perm rounded border-gray-300 dark:border-gray-600" value="${p.key}" checked>
-                      ${p.label}
-                    </label>
-                  `).join('')}
-                </div>
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Actions</p>
-                <div class="space-y-1">
-                  ${ALL_PERMISSIONS.filter(p => p.group === 'Actions').map(p => `
-                    <label class="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" class="new-user-perm rounded border-gray-300 dark:border-gray-600" value="${p.key}" checked>
-                      ${p.label}
-                    </label>
-                  `).join('')}
-                </div>
-              </div>
+            <div class="space-y-2" id="new-user-perms">
+              ${renderPermissionGroups('new', [], true)}
             </div>
           </div>
         </div>
@@ -95,30 +185,7 @@ export function renderUsersPage() {
           <h3 class="text-lg font-semibold">Edit Permissions</h3>
           <p id="edit-perms-username" class="text-sm text-gray-500 dark:text-gray-400"></p>
         </div>
-        <div class="flex-1 overflow-auto p-5 space-y-3">
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Pages</p>
-            <div class="space-y-1">
-              ${ALL_PERMISSIONS.filter(p => p.group === 'Pages').map(p => `
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" class="edit-perm-cb rounded border-gray-300 dark:border-gray-600" value="${p.key}">
-                  ${p.label}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Actions</p>
-            <div class="space-y-1">
-              ${ALL_PERMISSIONS.filter(p => p.group === 'Actions').map(p => `
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" class="edit-perm-cb rounded border-gray-300 dark:border-gray-600" value="${p.key}">
-                  ${p.label}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        </div>
+        <div class="flex-1 overflow-auto p-5 space-y-2" id="edit-perms-list"></div>
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
           <button id="edit-perms-cancel" class="btn-secondary text-sm">Cancel</button>
           <button id="edit-perms-save" class="btn-primary text-sm">Save</button>
@@ -126,6 +193,9 @@ export function renderUsersPage() {
       </div>
     </div>
   `;
+
+  const newPermsContainer = main.querySelector('#new-user-perms');
+  bindPermissionGroupEvents(newPermsContainer, 'new');
 
   loadUsers();
 
@@ -140,8 +210,7 @@ export function renderUsersPage() {
   document.getElementById('add-user-submit').addEventListener('click', async () => {
     const username = document.getElementById('new-user-username').value.trim();
     const password = document.getElementById('new-user-password').value;
-    const permissions = [];
-    document.querySelectorAll('.new-user-perm:checked').forEach(cb => permissions.push(cb.value));
+    const permissions = getSelectedPermissions(newPermsContainer, 'new');
 
     if (!username || !password) {
       showToast('Username and password required', 'error');
@@ -279,17 +348,19 @@ async function loadUsers() {
 
 async function openEditPerms(userId, username) {
   const modal = document.getElementById('edit-perms-modal');
+  const listContainer = document.getElementById('edit-perms-list');
   document.getElementById('edit-perms-username').textContent = username;
 
+  let perms;
   try {
-    const perms = await api(`/api/users/${userId}/permissions`);
-    modal.querySelectorAll('.edit-perm-cb').forEach(cb => {
-      cb.checked = perms.includes(cb.value);
-    });
+    perms = await api(`/api/users/${userId}/permissions`);
   } catch (err) {
     showToast(err.message, 'error');
     return;
   }
+
+  listContainer.innerHTML = renderPermissionGroups('edit', perms, false);
+  bindPermissionGroupEvents(listContainer, 'edit');
 
   modal.classList.remove('hidden');
 
@@ -298,8 +369,7 @@ async function openEditPerms(userId, username) {
   saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
   newSaveBtn.addEventListener('click', async () => {
-    const permissions = [];
-    modal.querySelectorAll('.edit-perm-cb:checked').forEach(cb => permissions.push(cb.value));
+    const permissions = getSelectedPermissions(listContainer, 'edit');
 
     try {
       await api(`/api/users/${userId}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) });

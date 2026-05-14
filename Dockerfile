@@ -16,7 +16,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-COPY server ./server
+COPY src ./src
 
 EXPOSE 3000
 
@@ -24,6 +24,6 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV NODE_OPTIONS=--no-deprecation
 
-VOLUME ["/app/server/db"]
+VOLUME ["/app/data"]
 
-CMD ["node", "server/index.js"]
+CMD ["node", "src/local.js"]

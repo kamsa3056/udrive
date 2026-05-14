@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - udrive-db:/app/server/db
+      - udrive-db:/app/data
     env_file:
       - path: .env
         required: false

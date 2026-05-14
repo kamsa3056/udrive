@@ -10,9 +10,11 @@ import { renderTrashPage } from './pages/trash.js';
 import { renderLoginPage } from './pages/login.js';
 import { renderSetupPage } from './pages/setup.js';
 import { renderUsersPage } from './pages/users.js';
+import { renderActivityPage } from './pages/activity.js';
+import { renderLogsPage } from './pages/logs.js';
 import { showLogoutModal } from './components/logout-modal.js';
 import { api } from './api.js';
-import { setCurrentUser, hasPermission, getCurrentUser } from './auth-state.js';
+import { setCurrentUser, hasPermission, hasPageAccess, getCurrentUser } from './auth-state.js';
 
 initTheme();
 
@@ -45,7 +47,7 @@ async function initApp() {
 
     const logoutBtn = document.getElementById('btn-logout-topbar');
     if (logoutBtn) {
-      if (hasPermission('page:settings')) {
+      if (hasPageAccess('settings')) {
         logoutBtn.classList.add('hidden');
       } else {
         logoutBtn.classList.remove('hidden');
@@ -54,24 +56,32 @@ async function initApp() {
     }
 
     registerRoute('/', () => {
-      if (!hasPermission('page:drive')) { navigate('/login'); return; }
+      if (!hasPageAccess('drive')) { navigate('/login'); return; }
       return renderFilesPage();
     });
     registerRoute('/accounts', () => {
-      if (!hasPermission('page:accounts')) { navigate('/'); return; }
+      if (!hasPageAccess('accounts')) { navigate('/'); return; }
       renderAccountsPage();
     });
     registerRoute('/settings', () => {
-      if (!hasPermission('page:settings')) { navigate('/'); return; }
+      if (!hasPageAccess('settings')) { navigate('/'); return; }
       renderSettingsPage();
     });
     registerRoute('/trash', () => {
-      if (!hasPermission('page:trash')) { navigate('/'); return; }
+      if (!hasPageAccess('trash')) { navigate('/'); return; }
       renderTrashPage();
     });
     registerRoute('/users', () => {
       if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderUsersPage();
+    });
+    registerRoute('/activity', () => {
+      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      renderActivityPage();
+    });
+    registerRoute('/logs', () => {
+      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      renderLogsPage();
     });
     registerRoute('/login', renderLoginPage);
 
@@ -86,19 +96,19 @@ function initMobileNav() {
   const mobileNav = document.getElementById('mobile-nav');
   if (!mobileNav) return;
 
-  // Filter nav items based on permissions
   mobileNav.querySelectorAll('.mobile-nav-link').forEach(link => {
     const path = link.dataset.path;
     let visible = true;
-    if (path === '/' && !hasPermission('page:drive')) visible = false;
-    if (path === '/trash' && !hasPermission('page:trash')) visible = false;
-    if (path === '/accounts' && !hasPermission('page:accounts')) visible = false;
-    if (path === '/settings' && !hasPermission('page:settings')) visible = false;
+    if (path === '/' && !hasPageAccess('drive')) visible = false;
+    if (path === '/trash' && !hasPageAccess('trash')) visible = false;
+    if (path === '/accounts' && !hasPageAccess('accounts')) visible = false;
+    if (path === '/settings' && !hasPageAccess('settings')) visible = false;
     if (path === '/users' && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/activity' && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/logs' && getCurrentUser()?.role !== 'master') visible = false;
     link.classList.toggle('hidden', !visible);
   });
 
-  // Hide entire navbar if only 1 or fewer visible items
   const visibleLinks = mobileNav.querySelectorAll('.mobile-nav-link:not(.hidden)');
   if (visibleLinks.length <= 1) {
     mobileNav.style.display = 'none';

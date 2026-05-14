@@ -3,6 +3,12 @@ import { showToast } from '../components/toast.js';
 import { setTheme, getTheme } from '../theme.js';
 import { showLogoutModal } from '../components/logout-modal.js';
 
+function getTimezoneOptions() {
+  const timezones = Intl.supportedValuesOf('timeZone');
+  const current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return timezones.map(tz => `<option value="${tz}">${tz.replace(/_/g, ' ')}</option>`).join('');
+}
+
 export function renderSettingsPage() {
   const main = document.getElementById('main-content');
   const currentTheme = getTheme();
@@ -28,9 +34,10 @@ export function renderSettingsPage() {
 
         <section>
           <h3 class="text-lg font-medium mb-4">Appearance</h3>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme</label>
-            <div class="flex gap-3">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme</label>
+              <div class="flex gap-3">
               <button class="theme-btn px-4 py-2 rounded-lg border text-sm font-medium transition-all ${currentTheme === 'light' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'}" data-theme="light">
                 <span class="material-icons-outlined text-base align-middle mr-1">light_mode</span>
                 Light
@@ -43,6 +50,16 @@ export function renderSettingsPage() {
                 <span class="material-icons-outlined text-base align-middle mr-1">brightness_auto</span>
                 Auto
               </button>
+            </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
+              <div class="flex gap-2">
+                <select id="input-timezone" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                  ${getTimezoneOptions()}
+                </select>
+                <button id="btn-save-timezone" class="btn-primary text-sm">Save</button>
+              </div>
             </div>
           </div>
         </section>
@@ -65,6 +82,67 @@ export function renderSettingsPage() {
                 Run Now
               </button>
               <span id="keepalive-last" class="text-xs text-gray-500 dark:text-gray-400"></span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="text-lg font-medium mb-4">Logging</h3>
+          <div class="space-y-3">
+            <label class="flex items-center justify-between cursor-pointer">
+              <div>
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Activity Log</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Track user actions (upload, download, delete, etc.)</p>
+              </div>
+              <input type="checkbox" id="toggle-activity" class="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600">
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <div>
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">System Logs</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Track system events (token refresh, keep-alive, errors)</p>
+              </div>
+              <input type="checkbox" id="toggle-logs" class="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600">
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="text-lg font-medium mb-4">Database</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Download or upload database for migration between Local and Cloudflare deployments.</p>
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Select data:</p>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" class="db-table-cb rounded border-gray-300 dark:border-gray-600" value="accounts" checked>
+                Accounts (Google Drive accounts)
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" class="db-table-cb rounded border-gray-300 dark:border-gray-600" value="settings" checked>
+                Settings
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" class="db-table-cb rounded border-gray-300 dark:border-gray-600" value="file_owners" checked>
+                File Owners
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" class="db-table-cb rounded border-gray-300 dark:border-gray-600" value="users" checked>
+                Users (Slave only)
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" class="db-table-cb rounded border-gray-300 dark:border-gray-600" value="user_permissions" checked>
+                User Permissions
+              </label>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <button id="btn-export-db" class="btn-secondary text-sm">
+                <span class="material-icons-outlined text-base">download</span>
+                Download Database
+              </button>
+              <button id="btn-import-db" class="btn-secondary text-sm">
+                <span class="material-icons-outlined text-base">upload</span>
+                Upload Database
+              </button>
+              <input type="file" id="import-db-input" class="hidden" accept=".json">
             </div>
           </div>
         </section>
@@ -108,6 +186,36 @@ export function renderSettingsPage() {
     }
   });
 
+  main.querySelector('#btn-save-timezone').addEventListener('click', async () => {
+    const tz = main.querySelector('#input-timezone').value;
+    try {
+      await api('/api/settings', { method: 'PUT', body: JSON.stringify({ timezone: tz }) });
+      showToast(`Timezone set to ${tz}`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  main.querySelector('#toggle-activity').addEventListener('change', async (e) => {
+    try {
+      await api('/api/settings', { method: 'PUT', body: JSON.stringify({ activity_enabled: e.target.checked ? '1' : '0' }) });
+      showToast(`Activity log ${e.target.checked ? 'enabled' : 'disabled'}`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      e.target.checked = !e.target.checked;
+    }
+  });
+
+  main.querySelector('#toggle-logs').addEventListener('change', async (e) => {
+    try {
+      await api('/api/settings', { method: 'PUT', body: JSON.stringify({ logs_enabled: e.target.checked ? '1' : '0' }) });
+      showToast(`System logs ${e.target.checked ? 'enabled' : 'disabled'}`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      e.target.checked = !e.target.checked;
+    }
+  });
+
   main.querySelector('#btn-save-keepalive').addEventListener('click', async () => {
     const days = main.querySelector('#input-keepalive-days').value.trim();
     try {
@@ -141,6 +249,69 @@ export function renderSettingsPage() {
     }
   });
 
+  main.querySelector('#btn-export-db').addEventListener('click', async () => {
+    const selectedTables = [...main.querySelectorAll('.db-table-cb:checked')].map(cb => cb.value);
+    if (selectedTables.length === 0) { showToast('Select at least one data type', 'error'); return; }
+
+    const btn = main.querySelector('#btn-export-db');
+    btn.disabled = true;
+    const icon = btn.querySelector('.material-icons-outlined');
+    icon.classList.add('animate-spin');
+    icon.textContent = 'sync';
+
+    try {
+      const data = await api(`/api/settings/export-db?tables=${selectedTables.join(',')}`);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `udrive-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Database downloaded', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      icon.classList.remove('animate-spin');
+      icon.textContent = 'download';
+      btn.disabled = false;
+    }
+  });
+
+  main.querySelector('#btn-import-db').addEventListener('click', () => {
+    main.querySelector('#import-db-input').click();
+  });
+
+  main.querySelector('#import-db-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const selectedTables = [...main.querySelectorAll('.db-table-cb:checked')].map(cb => cb.value);
+    if (selectedTables.length === 0) { showToast('Select at least one data type', 'error'); return; }
+
+    if (!confirm('Upload will overwrite selected data. Are you sure?')) return;
+
+    const btn = main.querySelector('#btn-import-db');
+    btn.disabled = true;
+    const icon = btn.querySelector('.material-icons-outlined');
+    icon.classList.add('animate-spin');
+    icon.textContent = 'sync';
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await api('/api/settings/import-db', { method: 'POST', body: JSON.stringify({ tables: selectedTables, data }) });
+      showToast('Database uploaded. Reloading...', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      showToast(err.message, 'error');
+      icon.classList.remove('animate-spin');
+      icon.textContent = 'upload';
+      btn.disabled = false;
+    }
+  });
+
   main.querySelector('#btn-logout').addEventListener('click', () => showLogoutModal());
 }
 
@@ -159,6 +330,19 @@ async function loadSettings() {
     if (lastEl && settings.last_keepalive) {
       const d = new Date(settings.last_keepalive);
       lastEl.textContent = `Last run: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    }
+    const activityToggle = document.getElementById('toggle-activity');
+    if (activityToggle) {
+      activityToggle.checked = settings.activity_enabled !== '0';
+    }
+    const logsToggle = document.getElementById('toggle-logs');
+    if (logsToggle) {
+      logsToggle.checked = settings.logs_enabled !== '0';
+    }
+    const tzSelect = document.getElementById('input-timezone');
+    if (tzSelect) {
+      const tz = settings.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      tzSelect.value = tz;
     }
   } catch (err) {
     // Settings not loaded yet

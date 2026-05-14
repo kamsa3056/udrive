@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { renderStorageBar } from './storage-bar.js';
-import { getCurrentUser, hasPermission } from '../auth-state.js';
+import { getCurrentUser, hasPageAccess } from '../auth-state.js';
 
 export async function renderSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -28,11 +28,13 @@ export function updateSidebarContent(sidebar, totalUsed, totalLimit, collapsed) 
   const isMaster = user?.role === 'master';
 
   const navItems = [];
-  if (hasPermission('page:drive')) navItems.push({ path: '/', icon: 'folder', label: 'My Drive' });
-  if (hasPermission('page:trash')) navItems.push({ path: '/trash', icon: 'delete', label: 'Trash' });
-  if (hasPermission('page:accounts')) navItems.push({ path: '/accounts', icon: 'people', label: 'Accounts' });
-  if (hasPermission('page:settings')) navItems.push({ path: '/settings', icon: 'settings', label: 'Settings' });
+  if (hasPageAccess('drive')) navItems.push({ path: '/', icon: 'folder', label: 'My Drive' });
+  if (hasPageAccess('trash')) navItems.push({ path: '/trash', icon: 'delete', label: 'Trash' });
+  if (hasPageAccess('accounts')) navItems.push({ path: '/accounts', icon: 'people', label: 'Accounts' });
+  if (hasPageAccess('settings')) navItems.push({ path: '/settings', icon: 'settings', label: 'Settings' });
   if (isMaster) navItems.push({ path: '/users', icon: 'admin_panel_settings', label: 'Users' });
+  if (isMaster) navItems.push({ path: '/activity', icon: 'history', label: 'Activity' });
+  if (isMaster) navItems.push({ path: '/logs', icon: 'terminal', label: 'Logs' });
 
   if (collapsed) {
     const percent = totalLimit > 0 ? Math.min((totalUsed / totalLimit) * 100, 100) : 0;

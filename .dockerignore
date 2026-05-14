@@ -1,8 +1,8 @@
 node_modules
 dist
-server/db/*.db
-server/db/*.db-wal
-server/db/*.db-shm
+data/*.db
+data/*.db-wal
+data/*.db-shm
 .env
 .claude
 .git

@@ -183,6 +183,7 @@ function openPreview(fileId, name, mimeType) {
 
 function getFileIcon(mimeType) {
   if (mimeType === 'application/vnd.google-apps.folder') return 'folder';
+  if (mimeType === 'application/vnd.google-apps.shortcut') return 'shortcut';
   if (mimeType?.startsWith('image/')) return 'image';
   if (mimeType?.startsWith('video/')) return 'movie';
   if (mimeType?.startsWith('audio/')) return 'audio_file';
@@ -196,6 +197,7 @@ function getFileIcon(mimeType) {
 
 function getFileIconColor(mimeType) {
   if (mimeType === 'application/vnd.google-apps.folder') return 'text-gray-500 dark:text-gray-400';
+  if (mimeType === 'application/vnd.google-apps.shortcut') return 'text-gray-500 dark:text-gray-400';
   if (mimeType?.startsWith('image/')) return 'text-red-500';
   if (mimeType?.startsWith('video/')) return 'text-red-600';
   if (mimeType?.includes('pdf')) return 'text-red-500';
@@ -327,9 +329,12 @@ function renderListView(container) {
           </tr>
         </thead>
       <tbody>
-        ${currentFiles.map(file => `
+        ${currentFiles.map(file => {
+          const targetId = file.shortcutDetails?.targetId || '';
+          const targetMime = file.shortcutDetails?.targetMimeType || '';
+          return `
           <tr class="file-item border-b border-gray-100 dark:border-gray-800 cursor-pointer"
-              data-id="${file.id}" data-name="${escapeAttr(file.name)}" data-mime="${file.mimeType}">
+              data-id="${file.id}" data-name="${escapeAttr(file.name)}" data-mime="${file.mimeType}" data-target-id="${targetId}" data-target-mime="${targetMime}">
             <td class="py-2 pl-4">
               <input type="checkbox" class="file-checkbox rounded border-gray-300 dark:border-gray-600" data-id="${file.id}">
             </td>
@@ -347,7 +352,7 @@ function renderListView(container) {
               </button>
             </td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
       </table>
     </div>
@@ -365,6 +370,8 @@ function renderGridView(container) {
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
       ${currentFiles.map(file => {
         const isImage = file.mimeType?.startsWith('image/');
+        const targetId = file.shortcutDetails?.targetId || '';
+        const targetMime = file.shortcutDetails?.targetMimeType || '';
         const thumbnailPlaceholder = isImage
           ? `<div class="thumb-container w-full h-24 rounded-lg bg-gray-100 dark:bg-gray-800 mb-2 overflow-hidden flex items-center justify-center" data-file-id="${file.id}">
               <span class="material-icons-outlined text-3xl text-gray-300 dark:text-gray-600 thumb-placeholder">image</span>
@@ -373,7 +380,7 @@ function renderGridView(container) {
 
         return `
         <div class="file-item group relative border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:shadow-md transition-all cursor-pointer flex flex-col items-center text-center"
-             data-id="${file.id}" data-name="${escapeAttr(file.name)}" data-mime="${file.mimeType}">
+             data-id="${file.id}" data-name="${escapeAttr(file.name)}" data-mime="${file.mimeType}" data-target-id="${targetId}" data-target-mime="${targetMime}">
           <input type="checkbox" class="file-checkbox absolute top-2 left-2 rounded border-gray-300 dark:border-gray-600 opacity-0 group-hover:opacity-100 checked:opacity-100 transition-opacity" data-id="${file.id}">
           <button class="file-more-btn absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
             <span class="material-icons-outlined text-base">more_vert</span>
@@ -445,10 +452,19 @@ function bindFileEvents(container) {
       const mime = row.dataset.mime;
       const id = row.dataset.id;
       const name = row.dataset.name;
+      const targetId = row.dataset.targetId;
+      const targetMime = row.dataset.targetMime;
+
       if (mime === 'application/vnd.google-apps.folder') {
         folderStack.push({ id, name });
         saveFolderStack();
         window.location.hash = `/?folderId=${id}`;
+      } else if (mime === 'application/vnd.google-apps.shortcut' && targetMime === 'application/vnd.google-apps.folder') {
+        folderStack.push({ id: targetId, name });
+        saveFolderStack();
+        window.location.hash = `/?folderId=${targetId}`;
+      } else if (mime === 'application/vnd.google-apps.shortcut' && targetMime && isPreviewable(targetMime)) {
+        openPreview(targetId, name, targetMime);
       } else if (isPreviewable(mime)) {
         openPreview(id, name, mime);
       }
