@@ -93,12 +93,12 @@ export async function initDB(db) {
 
 function migratePermissions(db) {
   const OLD_TO_NEW = {
-    'page:drive': ['drive:upload', 'drive:download', 'drive:delete', 'drive:rename', 'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview'],
+    'page:drive': ['drive:upload', 'drive:download_browser', 'drive:download_background', 'drive:delete', 'drive:rename', 'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview'],
     'page:trash': ['trash:view', 'trash:restore', 'trash:permanent_delete', 'trash:empty'],
     'page:accounts': ['accounts:view', 'accounts:add', 'accounts:remove', 'accounts:set_primary', 'accounts:refresh', 'accounts:import_export', 'accounts:color'],
     'page:settings': ['settings:view', 'settings:edit', 'settings:keepalive', 'settings:database'],
     'action:upload': ['drive:upload'],
-    'action:download': ['drive:download'],
+    'action:download': ['drive:download_browser', 'drive:download_background'],
     'action:delete': ['drive:delete'],
     'action:create_folder': ['drive:create_folder'],
     'action:rename': ['drive:rename'],

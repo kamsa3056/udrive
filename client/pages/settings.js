@@ -76,6 +76,18 @@ export function renderSettingsPage() {
           </div>
         </section>
 
+        <section>
+          <h3 class="text-lg font-medium mb-4">Download</h3>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Average Download Speed (MBps)</label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Used to calculate expiry time for browser download links.</p>
+            <div class="flex gap-2">
+              <input type="number" id="input-download-speed" min="0.1" step="0.1" class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="1">
+              <button id="btn-save-download-speed" class="btn-primary text-sm">Save</button>
+            </div>
+          </div>
+        </section>
+
         ${hasPermission('settings:keepalive') ? `<section>
           <h3 class="text-lg font-medium mb-4">Keep-Alive</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Automatically generate activity on all accounts to prevent Google from deleting inactive accounts. A small file is uploaded and immediately deleted from each account.</p>
@@ -205,6 +217,16 @@ export function renderSettingsPage() {
     try {
       await api('/api/settings', { method: 'PUT', body: JSON.stringify({ shared_folder_id: folderId }) });
       showToast('Shared folder ID saved', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  main.querySelector('#btn-save-download-speed')?.addEventListener('click', async () => {
+    const speed = main.querySelector('#input-download-speed').value.trim();
+    try {
+      await api('/api/settings', { method: 'PUT', body: JSON.stringify({ download_speed_mbps: speed || '1' }) });
+      showToast('Download speed saved', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -375,6 +397,10 @@ async function loadSettings() {
         btn.classList.remove('border-gray-300', 'dark:border-gray-600', 'hover:bg-gray-50', 'dark:hover:bg-gray-800');
       }
     });
+    const speedInput = document.getElementById('input-download-speed');
+    if (speedInput) {
+      speedInput.value = settings.download_speed_mbps || '1';
+    }
   } catch (err) {
     // Settings not loaded yet
   }

@@ -7,6 +7,7 @@ import { addToUploadQueue, onUploadComplete } from '../components/upload-queue.j
 import { renderSidebar } from '../components/sidebar.js';
 import { hasPermission } from '../auth-state.js';
 import { formatDate } from '../time-utils.js';
+import { downloadBackground, downloadViaBrowser } from '../components/download-queue.js';
 
 let folderStack = [];
 let currentFiles = [];
@@ -501,8 +502,11 @@ function showFileContextMenu(x, y, dataset) {
     if (isPreviewable(dataset.mime) && hasPermission('drive:preview')) {
       items.push({ icon: 'visibility', label: 'Preview', action: 'preview', handler: () => openPreview(dataset.id, dataset.name, dataset.mime) });
     }
-    if (hasPermission('drive:download')) {
-      items.push({ icon: 'download', label: 'Download', action: 'download', handler: () => downloadFileAction(dataset.id, dataset.name) });
+    if (hasPermission('drive:download_browser')) {
+      items.push({ icon: 'download', label: 'Download (Browser)', action: 'download-browser', handler: () => downloadViaBrowserAction(dataset.id, dataset.name) });
+    }
+    if (hasPermission('drive:download_background')) {
+      items.push({ icon: 'downloading', label: 'Download (Background)', action: 'download-bg', handler: () => downloadBackground(dataset.id, dataset.name) });
     }
   }
 
@@ -542,18 +546,10 @@ function showFileContextMenu(x, y, dataset) {
   showContextMenu(x, y, items);
 }
 
-async function downloadFileAction(fileId, name) {
+async function downloadViaBrowserAction(fileId, name) {
   try {
-    const res = await fetch(`/api/files/${fileId}/download`);
-    if (!res.ok) throw new Error('Download failed');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('Download started', 'success');
+    await downloadViaBrowser(fileId, name);
+    showToast('Download started in browser', 'success');
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -610,7 +606,7 @@ async function bulkDownload() {
   for (const fileId of selectedFiles) {
     const file = currentFiles.find(f => f.id === fileId);
     if (file && file.mimeType !== 'application/vnd.google-apps.folder') {
-      await downloadFileAction(fileId, file.name);
+      downloadBackground(fileId, file.name);
     }
   }
 }
@@ -767,7 +763,7 @@ export function renderFilesPage() {
             ${hasPermission('drive:move') ? `<button id="bulk-cut" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Cut selected">
               <span class="material-icons-outlined text-lg">content_cut</span>
             </button>` : ''}
-            ${hasPermission('drive:download') ? `<button id="bulk-download" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Download selected">
+            ${(hasPermission('drive:download_browser') || hasPermission('drive:download_background')) ? `<button id="bulk-download" class="p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors" title="Download selected">
               <span class="material-icons-outlined text-lg">download</span>
             </button>` : ''}
             ${hasPermission('drive:delete') ? `<button id="bulk-delete" class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 transition-colors" title="Delete selected">

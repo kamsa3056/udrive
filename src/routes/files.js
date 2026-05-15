@@ -16,6 +16,29 @@ async function getPrimaryAccountId(db) {
   return row?.id || null;
 }
 
+files.get('/dlink/:token', async (c) => {
+  const db = c.get("db");
+  const token = c.req.param('token');
+
+  const row = await db.prepare("SELECT value FROM settings WHERE key = ?").bind(`dl_token:${token}`).first();
+  if (!row) return c.json({ error: 'Invalid or expired download link' }, 403);
+
+  const data = JSON.parse(row.value);
+  if (new Date(data.expiresAt) < new Date()) {
+    await db.prepare("DELETE FROM settings WHERE key = ?").bind(`dl_token:${token}`).run();
+    return c.json({ error: 'Download link expired' }, 403);
+  }
+
+  const { metadata, body } = await drive.downloadFile(c.env, db, data.accountId, data.fileId);
+  return new Response(body, {
+    headers: {
+      'Content-Type': metadata.mimeType || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(data.fileName)}"`,
+      ...(metadata.size ? { 'Content-Length': metadata.size } : {})
+    }
+  });
+});
+
 files.get('/trash/list', async (c) => {
   const user = c.get('user');
   let err = requireAuth(c, user);
@@ -126,7 +149,7 @@ files.get('/:fileId/download', async (c) => {
   const user = c.get('user');
   let err = requireAuth(c, user);
   if (err) return err;
-  err = requirePermission(c, user, 'drive:download');
+  err = requirePermission(c, user, 'drive:download_background');
   if (err) return err;
 
   const db = c.get("db");
@@ -144,6 +167,42 @@ files.get('/:fileId/download', async (c) => {
       ...(metadata.size ? { 'Content-Length': metadata.size } : {})
     }
   });
+});
+
+files.post('/:fileId/download-token', async (c) => {
+  const user = c.get('user');
+  let err = requireAuth(c, user);
+  if (err) return err;
+  err = requirePermission(c, user, 'drive:download_browser');
+  if (err) return err;
+
+  const db = c.get("db");
+  const fileId = c.req.param('fileId');
+  const accountId = await getPrimaryAccountId(db);
+  if (!accountId) return c.json({ error: 'No primary account set' }, 400);
+
+  // Get file size to calculate expiry
+  const fileInfo = await drive.getFileInfo(c.env, db, accountId, fileId);
+  const fileSize = parseInt(fileInfo.size || '0');
+
+  // Get avg download speed from settings (default 1 MBps)
+  const speedSetting = await db.prepare("SELECT value FROM settings WHERE key = 'download_speed_mbps'").first();
+  const speedMBps = speedSetting ? parseFloat(speedSetting.value) : 1;
+
+  // Calculate expiry: (fileSize / speed) * 2, minimum 60 seconds
+  const downloadTimeSec = fileSize / (speedMBps * 1024 * 1024);
+  const expirySec = Math.max(60, Math.ceil(downloadTimeSec * 2));
+  const expiresAt = new Date(Date.now() + expirySec * 1000).toISOString();
+
+  // Generate token
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  const token = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').bind(`dl_token:${token}`, JSON.stringify({ fileId, accountId, expiresAt, fileName: fileInfo.name })).run();
+
+  await logActivity(db, user.id, user.username, 'download', fileInfo.name);
+  return c.json({ token, expiresAt, fileName: fileInfo.name, fileSize });
 });
 
 files.get('/:fileId/thumbnail', async (c) => {

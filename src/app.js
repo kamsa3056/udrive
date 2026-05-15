@@ -45,5 +45,32 @@ export function createApp(getDB, envVars = null) {
   app.route('/api/activity', activityRoutes);
   app.route('/api/logs', logsRoutes);
 
+  // Short download link
+  app.get('/dlink/:token', async (c, next) => {
+    const db = getDB(c.env);
+    c.set('db', db);
+    const { Hono } = await import('hono');
+    const token = c.req.param('token');
+
+    const row = await db.prepare("SELECT value FROM settings WHERE key = ?").bind(`dl_token:${token}`).first();
+    if (!row) return c.json({ error: 'Invalid or expired download link' }, 403);
+
+    const data = JSON.parse(row.value);
+    if (new Date(data.expiresAt) < new Date()) {
+      await db.prepare("DELETE FROM settings WHERE key = ?").bind(`dl_token:${token}`).run();
+      return c.json({ error: 'Download link expired' }, 403);
+    }
+
+    const { downloadFile } = await import('./services/google-drive.js');
+    const { metadata, body } = await downloadFile(c.env, db, data.accountId, data.fileId);
+    return new Response(body, {
+      headers: {
+        'Content-Type': metadata.mimeType || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(data.fileName)}"`,
+        ...(metadata.size ? { 'Content-Length': metadata.size } : {})
+      }
+    });
+  });
+
   return app;
 }
