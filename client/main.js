@@ -13,6 +13,8 @@ import { renderUsersPage } from './pages/users.js';
 import { renderActivityPage } from './pages/activity.js';
 import { renderLogsPage } from './pages/logs.js';
 import { renderTransferPage } from './pages/transfer.js';
+import { renderApiAccessPage } from './pages/api-access.js';
+import { renderApiDocsPage } from './pages/api-docs.js';
 import { showLogoutModal } from './components/logout-modal.js';
 import { api } from './api.js';
 import { setCurrentUser, hasPermission, hasPageAccess, getCurrentUser } from './auth-state.js';
@@ -89,6 +91,14 @@ async function initApp() {
     registerRoute('/transfer', () => {
       renderTransferPage();
     });
+    registerRoute('/api-access', () => {
+      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      renderApiAccessPage();
+    });
+    registerRoute('/api-docs', () => {
+      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      renderApiDocsPage();
+    });
     registerRoute('/login', renderLoginPage);
 
     initRouter();
@@ -112,6 +122,7 @@ function initMobileNav() {
     if (path === '/users' && getCurrentUser()?.role !== 'master') visible = false;
     if (path === '/activity' && getCurrentUser()?.role !== 'master') visible = false;
     if (path === '/logs' && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/api-access' && getCurrentUser()?.role !== 'master') visible = false;
     link.classList.toggle('hidden', !visible);
   });
 

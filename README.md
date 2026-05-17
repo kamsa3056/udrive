@@ -31,6 +31,7 @@ Unified Google Drive Manager — pool multiple free Google Drive accounts (15GB 
 - **Account Colors** — Unique color per account card with palette picker
 - **Rclone Import/Export** — Import accounts from rclone.conf, export with client_id/secret included
 - **Database Download/Upload** — Migrate data between deployments with selective table export
+- **API Access** — Public REST API with key-based auth, per-key permissions, rate limiting, and management UI
 - **Dual Deploy** — Single codebase deploys to Docker/VPS or Cloudflare Pages
 
 ## Tech Stack

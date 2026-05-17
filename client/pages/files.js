@@ -37,9 +37,21 @@ function updatePasteButton() {
   const btn = document.getElementById('btn-paste');
   if (!btn) return;
   if (clipboard.files.length > 0) {
-    btn.classList.remove('hidden');
+    if (btn.tagName === 'SPAN') {
+      const newBtn = document.createElement('button');
+      newBtn.id = 'btn-paste';
+      newBtn.className = 'btn-secondary';
+      newBtn.innerHTML = '<span class="material-icons-outlined text-base md:text-lg">content_paste</span><span class="hidden sm:inline">Paste</span>';
+      newBtn.addEventListener('click', pasteFiles);
+      btn.replaceWith(newBtn);
+    }
   } else {
-    btn.classList.add('hidden');
+    if (btn.tagName === 'BUTTON') {
+      const placeholder = document.createElement('span');
+      placeholder.id = 'btn-paste';
+      placeholder.className = 'hidden';
+      btn.replaceWith(placeholder);
+    }
   }
 }
 
@@ -849,10 +861,10 @@ export function renderFilesPage() {
                   <span class="material-icons-outlined text-base md:text-lg">grid_view</span>
                 </button>
             </div>
-            <button id="btn-paste" class="${clipboard.files.length > 0 ? '' : 'hidden '}btn-secondary">
+            ${clipboard.files.length > 0 ? `<button id="btn-paste" class="btn-secondary">
               <span class="material-icons-outlined text-base md:text-lg">content_paste</span>
               <span class="hidden sm:inline">Paste</span>
-            </button>
+            </button>` : '<span id="btn-paste" class="hidden"></span>'}
             ${hasPermission('drive:create_folder') ? `<button id="btn-new-folder" class="btn-secondary">
               <span class="material-icons-outlined text-base md:text-lg">create_new_folder</span>
               <span class="hidden sm:inline">New Folder</span>

@@ -64,6 +64,25 @@ const SCHEMA = `
     detail TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    key_hash TEXT NOT NULL UNIQUE,
+    key_prefix TEXT NOT NULL,
+    user_id INTEGER,
+    permissions TEXT NOT NULL DEFAULT '[]',
+    rate_limit INTEGER DEFAULT 60,
+    expires_at TEXT,
+    last_used_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE TABLE IF NOT EXISTS api_rate_limits (
+    key_hash TEXT NOT NULL,
+    window_start INTEGER NOT NULL,
+    request_count INTEGER DEFAULT 0,
+    PRIMARY KEY (key_hash, window_start)
+  );
 `;
 
 let migrated = false;

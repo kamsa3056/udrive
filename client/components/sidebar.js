@@ -37,6 +37,8 @@ export function updateSidebarContent(sidebar, totalUsed, totalLimit, collapsed) 
   if (isMaster) navItems.push({ path: '/users', icon: 'admin_panel_settings', label: 'Users' });
   if (isMaster) navItems.push({ path: '/activity', icon: 'history', label: 'Activity' });
   if (isMaster) navItems.push({ path: '/logs', icon: 'terminal', label: 'Logs' });
+  if (isMaster) navItems.push({ path: '/api-access', icon: 'vpn_key', label: 'API Access' });
+  if (isMaster) navItems.push({ path: '/api-docs', icon: 'menu_book', label: 'API Docs' });
 
   if (collapsed) {
     const percent = totalLimit > 0 ? Math.min((totalUsed / totalLimit) * 100, 100) : 0;

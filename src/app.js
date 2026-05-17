@@ -7,6 +7,8 @@ import settingsRoutes from './routes/settings.js';
 import userRoutes from './routes/users.js';
 import activityRoutes from './routes/activity.js';
 import logsRoutes from './routes/logs.js';
+import apiV1Routes from './routes/api-v1.js';
+import apiKeysRoutes from './routes/api-keys.js';
 
 export function createApp(getDB, envVars = null) {
   const app = new Hono();
@@ -44,6 +46,8 @@ export function createApp(getDB, envVars = null) {
   app.route('/api/settings', settingsRoutes);
   app.route('/api/activity', activityRoutes);
   app.route('/api/logs', logsRoutes);
+  app.route('/api/api-keys', apiKeysRoutes);
+  app.route('/api/v1', apiV1Routes);
 
   // Short download link
   app.get('/dlink/:token', async (c, next) => {
