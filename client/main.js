@@ -145,6 +145,7 @@ function initMobileNav() {
     if (path === '/logs' && !hasPermission('admin:view_logs') && getCurrentUser()?.role !== 'master') visible = false;
     if (path === '/api-access' && !hasPermission('admin:manage_api') && getCurrentUser()?.role !== 'master') visible = false;
     if (path === '/api-docs' && !hasPermission('admin:view_api_docs') && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/file-share' && !hasPageAccess('share')) visible = false;
     link.classList.toggle('hidden', !visible);
   });
 
