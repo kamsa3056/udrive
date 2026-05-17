@@ -4,7 +4,8 @@ const PERMISSION_GROUPS = {
   drive: ['drive:view', 'drive:upload', 'drive:download_browser', 'drive:download_background', 'drive:delete', 'drive:rename', 'drive:create_folder', 'drive:move', 'drive:copy', 'drive:preview', 'drive:view_uploader', 'drive:transfer_owner'],
   trash: ['trash:view', 'trash:restore', 'trash:permanent_delete', 'trash:empty'],
   accounts: ['accounts:view', 'accounts:view_email', 'accounts:add', 'accounts:remove', 'accounts:set_primary', 'accounts:refresh', 'accounts:import_export', 'accounts:color'],
-  settings: ['settings:view', 'settings:edit', 'settings:keepalive', 'settings:database']
+  settings: ['settings:view', 'settings:edit', 'settings:keepalive', 'settings:database'],
+  admin: ['admin:view_users', 'admin:manage_users', 'admin:edit_permissions', 'admin:view_activity', 'admin:view_logs', 'admin:manage_api', 'admin:view_api_docs']
 };
 
 export function setCurrentUser(user) {

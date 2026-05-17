@@ -57,6 +57,20 @@ const PERMISSION_GROUPS = [
       { key: 'settings:keepalive', label: 'Keep-Alive' },
       { key: 'settings:database', label: 'Database Download/Upload' }
     ]
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    icon: 'admin_panel_settings',
+    permissions: [
+      { key: 'admin:view_users', label: 'View Users' },
+      { key: 'admin:manage_users', label: 'Manage Users (create/delete)' },
+      { key: 'admin:edit_permissions', label: 'Edit Permissions' },
+      { key: 'admin:view_activity', label: 'View Activity' },
+      { key: 'admin:view_logs', label: 'View Logs' },
+      { key: 'admin:manage_api', label: 'Manage API Keys' },
+      { key: 'admin:view_api_docs', label: 'View API Docs' }
+    ]
   }
 ];
 

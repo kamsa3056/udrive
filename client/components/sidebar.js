@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { renderStorageBar } from './storage-bar.js';
-import { getCurrentUser, hasPageAccess } from '../auth-state.js';
+import { getCurrentUser, hasPageAccess, hasPermission } from '../auth-state.js';
 import { getTransferState, onTransferChange } from './transfer-panel.js';
 
 export async function renderSidebar() {
@@ -34,11 +34,11 @@ export function updateSidebarContent(sidebar, totalUsed, totalLimit, collapsed) 
   if (hasPageAccess('trash')) navItems.push({ path: '/trash', icon: 'delete', label: 'Trash' });
   if (hasPageAccess('accounts')) navItems.push({ path: '/accounts', icon: 'people', label: 'Accounts' });
   if (hasPageAccess('settings')) navItems.push({ path: '/settings', icon: 'settings', label: 'Settings' });
-  if (isMaster) navItems.push({ path: '/users', icon: 'admin_panel_settings', label: 'Users' });
-  if (isMaster) navItems.push({ path: '/activity', icon: 'history', label: 'Activity' });
-  if (isMaster) navItems.push({ path: '/logs', icon: 'terminal', label: 'Logs' });
-  if (isMaster) navItems.push({ path: '/api-access', icon: 'vpn_key', label: 'API Access' });
-  if (isMaster) navItems.push({ path: '/api-docs', icon: 'menu_book', label: 'API Docs' });
+  if (isMaster || hasPermission('admin:view_users')) navItems.push({ path: '/users', icon: 'admin_panel_settings', label: 'Users' });
+  if (isMaster || hasPermission('admin:view_activity')) navItems.push({ path: '/activity', icon: 'history', label: 'Activity' });
+  if (isMaster || hasPermission('admin:view_logs')) navItems.push({ path: '/logs', icon: 'terminal', label: 'Logs' });
+  if (isMaster || hasPermission('admin:manage_api')) navItems.push({ path: '/api-access', icon: 'vpn_key', label: 'API Access' });
+  if (isMaster || hasPermission('admin:view_api_docs')) navItems.push({ path: '/api-docs', icon: 'menu_book', label: 'API Docs' });
 
   if (collapsed) {
     const percent = totalLimit > 0 ? Math.min((totalUsed / totalLimit) * 100, 100) : 0;

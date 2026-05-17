@@ -77,26 +77,26 @@ async function initApp() {
       renderTrashPage();
     });
     registerRoute('/users', () => {
-      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      if (!hasPermission('admin:view_users') && getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderUsersPage();
     });
     registerRoute('/activity', () => {
-      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      if (!hasPermission('admin:view_activity') && getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderActivityPage();
     });
     registerRoute('/logs', () => {
-      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      if (!hasPermission('admin:view_logs') && getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderLogsPage();
     });
     registerRoute('/transfer', () => {
       renderTransferPage();
     });
     registerRoute('/api-access', () => {
-      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      if (!hasPermission('admin:manage_api') && getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderApiAccessPage();
     });
     registerRoute('/api-docs', () => {
-      if (getCurrentUser()?.role !== 'master') { navigate('/'); return; }
+      if (!hasPermission('admin:view_api_docs') && getCurrentUser()?.role !== 'master') { navigate('/'); return; }
       renderApiDocsPage();
     });
     registerRoute('/login', renderLoginPage);
@@ -119,10 +119,11 @@ function initMobileNav() {
     if (path === '/trash' && !hasPageAccess('trash')) visible = false;
     if (path === '/accounts' && !hasPageAccess('accounts')) visible = false;
     if (path === '/settings' && !hasPageAccess('settings')) visible = false;
-    if (path === '/users' && getCurrentUser()?.role !== 'master') visible = false;
-    if (path === '/activity' && getCurrentUser()?.role !== 'master') visible = false;
-    if (path === '/logs' && getCurrentUser()?.role !== 'master') visible = false;
-    if (path === '/api-access' && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/users' && !hasPermission('admin:view_users') && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/activity' && !hasPermission('admin:view_activity') && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/logs' && !hasPermission('admin:view_logs') && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/api-access' && !hasPermission('admin:manage_api') && getCurrentUser()?.role !== 'master') visible = false;
+    if (path === '/api-docs' && !hasPermission('admin:view_api_docs') && getCurrentUser()?.role !== 'master') visible = false;
     link.classList.toggle('hidden', !visible);
   });
 
