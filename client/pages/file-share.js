@@ -475,6 +475,16 @@ async function renderSettingsTab(container) {
               <div class="w-9 h-5 bg-gray-300 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div>
+              <p class="text-sm font-medium">Show Storage Bar</p>
+              <p class="text-xs text-gray-500">Display storage usage on public upload page</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="share-show-storage" class="sr-only peer" ${settings.share_show_storage !== '0' ? 'checked' : ''}>
+              <div class="w-9 h-5 bg-gray-300 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Share Folder ID</label>
             <input type="text" id="share-folder-id" value="${escapeHtml(settings.share_folder_id || '')}" placeholder="Google Drive folder ID for shared files" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
@@ -541,6 +551,7 @@ async function renderSettingsTab(container) {
           method: 'PUT',
           body: JSON.stringify({
             share_enabled: container.querySelector('#share-enabled').checked ? '1' : '0',
+            share_show_storage: container.querySelector('#share-show-storage').checked ? '1' : '0',
             share_folder_id: container.querySelector('#share-folder-id').value.trim(),
             share_default_expiry_days: container.querySelector('#share-default-expiry').value,
             share_max_expiry_days: container.querySelector('#share-max-expiry').value,

@@ -177,6 +177,8 @@ function renderUploadWithLogin(main, shareInfo) {
               <p class="text-xs text-gray-500 dark:text-gray-400">Upload and share files instantly</p>
             </div>
 
+            <div id="login-storage-bar"></div>
+
             <div id="login-upload-zone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
               <span class="material-icons-outlined text-3xl text-gray-400">upload_file</span>
               <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Drag & drop or click to browse</p>
@@ -300,6 +302,23 @@ function renderUploadWithLogin(main, shareInfo) {
 
 async function initLoginUpload(main, shareInfo) {
   main.querySelector('#login-upload-max').textContent = `Max ${shareInfo.maxFileSizeMb}MB`;
+
+  // Storage bar
+  if (shareInfo.storage) {
+    const pct = Math.round((shareInfo.storage.used / shareInfo.storage.limit) * 100);
+    main.querySelector('#login-storage-bar').innerHTML = `
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs text-gray-500 dark:text-gray-400">Storage</span>
+          <span class="text-xs text-gray-400">${pct}%</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.min(pct, 100)}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">${formatFileSize(shareInfo.storage.used)} of ${formatFileSize(shareInfo.storage.limit)} used</p>
+      </div>
+    `;
+  }
 
   // Populate expiry options
   const expirySelect = main.querySelector('#login-expiry-select');

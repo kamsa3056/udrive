@@ -52,7 +52,7 @@ async function checkUploadRateLimit(db, ip) {
 }
 
 async function getShareSettings(db) {
-  const keys = ['share_enabled', 'share_folder_id', 'share_default_expiry_days', 'share_max_expiry_days', 'share_max_file_size_mb', 'share_cleanup_interval_minutes', 'share_rate_limit_per_hour'];
+  const keys = ['share_enabled', 'share_folder_id', 'share_default_expiry_days', 'share_max_expiry_days', 'share_max_file_size_mb', 'share_cleanup_interval_minutes', 'share_rate_limit_per_hour', 'share_show_storage'];
   const settings = {};
   for (const key of keys) {
     const row = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first();
@@ -78,13 +78,24 @@ sharePublic.get('/info', async (c) => {
   // Cleanup old CSRF tokens
   await db.prepare("DELETE FROM settings WHERE key LIKE 'csrf:%' AND value < datetime('now')").run();
 
+  // Storage info
+  const showStorage = await db.prepare("SELECT value FROM settings WHERE key = 'share_show_storage'").first();
+  let storage = null;
+  if (showStorage?.value !== '0') {
+    const { results: accounts } = await db.prepare('SELECT storage_used, storage_limit FROM accounts').all();
+    const totalUsed = accounts.reduce((sum, a) => sum + (a.storage_used || 0), 0);
+    const totalLimit = accounts.reduce((sum, a) => sum + (a.storage_limit || 0), 0);
+    storage = { used: totalUsed, limit: totalLimit };
+  }
+
   return c.json({
     enabled: true,
     maxFileSizeMb: parseInt(settings.share_max_file_size_mb) || 100,
     defaultExpiryDays: parseInt(settings.share_default_expiry_days) || 7,
     maxExpiryDays: parseInt(settings.share_max_expiry_days) || 30,
     csrfToken,
-    turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || ''
+    turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || '',
+    storage
   });
 });
 
@@ -381,7 +392,7 @@ shareAdmin.put('/settings', async (c) => {
 
   const db = c.get('db');
   const body = await c.req.json();
-  const allowed = ['share_enabled', 'share_folder_id', 'share_default_expiry_days', 'share_max_expiry_days', 'share_max_file_size_mb', 'share_cleanup_interval_minutes', 'share_rate_limit_per_hour'];
+  const allowed = ['share_enabled', 'share_folder_id', 'share_default_expiry_days', 'share_max_expiry_days', 'share_max_file_size_mb', 'share_cleanup_interval_minutes', 'share_rate_limit_per_hour', 'share_show_storage'];
 
   for (const [key, value] of Object.entries(body)) {
     if (allowed.includes(key)) {

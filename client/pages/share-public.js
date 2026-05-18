@@ -26,6 +26,83 @@ export function renderSharePublicPage() {
   }
 }
 
+function showLoginModal() {
+  const existing = document.getElementById('share-login-modal');
+  if (existing) { existing.classList.remove('hidden'); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'share-login-modal';
+  modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full relative">
+      <button id="share-login-close" class="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+        <span class="material-icons-outlined text-xl">close</span>
+      </button>
+      <div class="text-center mb-5">
+        <span class="material-icons-outlined text-blue-600 text-4xl">cloud</span>
+        <h2 class="text-xl font-bold mt-2">UDrive</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to continue</p>
+      </div>
+      <form id="share-login-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+          <input type="text" id="share-login-username" required autocomplete="username" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+          <input type="password" id="share-login-password" required autocomplete="current-password" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+        </div>
+        <p id="share-login-error" class="text-sm text-red-500 hidden"></p>
+        <button type="submit" id="share-login-btn" class="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm">
+          Sign In
+        </button>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#share-login-close').addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+  modal.querySelector('#share-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = modal.querySelector('#share-login-btn');
+    const errEl = modal.querySelector('#share-login-error');
+    errEl.classList.add('hidden');
+
+    const username = modal.querySelector('#share-login-username').value.trim();
+    const password = modal.querySelector('#share-login-password').value;
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Login failed';
+        errEl.classList.remove('hidden');
+      } else {
+        modal.remove();
+        window.location.hash = '/';
+        window.location.reload();
+      }
+    } catch {
+      errEl.textContent = 'Network error';
+      errEl.classList.remove('hidden');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  });
+
+  modal.querySelector('#share-login-username').focus();
+}
+
 async function renderUploadPage(main) {
   let shareInfo;
   try {
@@ -47,6 +124,13 @@ async function renderUploadPage(main) {
     return;
   }
 
+  // Show login button in topbar
+  const loginTopbar = document.getElementById('btn-login-topbar');
+  if (loginTopbar) {
+    loginTopbar.classList.remove('hidden');
+    loginTopbar.onclick = () => showLoginModal();
+  }
+
   const expiryOptions = [];
   for (let d = 1; d <= shareInfo.maxExpiryDays; d++) {
     if (d === 1 || d === 3 || d === 7 || d === 14 || d === 30 || d === shareInfo.defaultExpiryDays) {
@@ -54,6 +138,19 @@ async function renderUploadPage(main) {
     }
   }
   const uniqueDays = [...new Set(expiryOptions)].sort((a, b) => a - b);
+
+  const storageHtml = shareInfo.storage ? `
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Storage</span>
+        <span class="text-xs text-gray-400">${Math.round((shareInfo.storage.used / shareInfo.storage.limit) * 100)}%</span>
+      </div>
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.min((shareInfo.storage.used / shareInfo.storage.limit) * 100, 100)}%"></div>
+      </div>
+      <p class="text-xs text-gray-400 mt-1">${formatFileSize(shareInfo.storage.used)} of ${formatFileSize(shareInfo.storage.limit)} used</p>
+    </div>
+  ` : '';
 
   main.innerHTML = `
     <div class="flex items-start md:items-center justify-center min-h-[calc(100vh-3rem)] p-4 pt-6 md:pt-4">
@@ -63,6 +160,8 @@ async function renderUploadPage(main) {
           <h1 class="text-2xl font-bold mt-2">UDrive Share</h1>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload and share files securely</p>
         </div>
+
+        ${storageHtml}
 
         <div id="upload-zone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
           <span class="material-icons-outlined text-4xl text-gray-400">upload_file</span>
@@ -118,23 +217,6 @@ async function renderUploadPage(main) {
 
         <div id="upload-error" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <p id="error-text" class="text-sm text-red-600 dark:text-red-400"></p>
-        </div>
-
-        <div class="mt-6">
-          <button id="login-toggle" class="w-full flex items-center justify-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
-            <span>Admin Login</span>
-            <span class="material-icons-outlined text-base login-chevron">expand_more</span>
-          </button>
-          <div id="login-form" class="hidden mt-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
-            <div>
-              <input type="text" id="login-username" placeholder="Username" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-            </div>
-            <div>
-              <input type="password" id="login-password" placeholder="Password" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-            </div>
-            <p id="login-error" class="text-xs text-red-500 hidden"></p>
-            <button id="login-btn" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Login</button>
-          </div>
         </div>
       </div>
     </div>
@@ -192,7 +274,6 @@ async function renderUploadPage(main) {
     passwordInput.classList.toggle('hidden', !passwordToggle.checked);
   });
 
-  // Render Turnstile widget
   if (shareInfo.turnstileSiteKey && window.turnstile) {
     window.turnstile.render('#turnstile-container', {
       sitekey: shareInfo.turnstileSiteKey,
@@ -206,7 +287,6 @@ async function renderUploadPage(main) {
     uploadBtn.disabled = true;
     uploadBtn.textContent = 'Uploading...';
     main.querySelector('#upload-error').classList.add('hidden');
-    main.querySelector('#upload-result').classList.add('hidden');
 
     const progressEl = main.querySelector('#upload-progress');
     const progressBar = main.querySelector('#progress-bar');
@@ -299,57 +379,6 @@ async function renderUploadPage(main) {
       setTimeout(() => { modal.querySelector('#share-modal-copy').textContent = 'Copy'; }, 2000);
     });
   }
-
-  // Login toggle
-  main.querySelector('#login-toggle').addEventListener('click', () => {
-    const form = main.querySelector('#login-form');
-    const chevron = main.querySelector('.login-chevron');
-    form.classList.toggle('hidden');
-    chevron.textContent = form.classList.contains('hidden') ? 'expand_more' : 'expand_less';
-  });
-
-  main.querySelector('#login-btn').addEventListener('click', async () => {
-    const username = main.querySelector('#login-username').value.trim();
-    const password = main.querySelector('#login-password').value;
-    const errEl = main.querySelector('#login-error');
-    errEl.classList.add('hidden');
-
-    if (!username || !password) {
-      errEl.textContent = 'Username and password required';
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    const btn = main.querySelector('#login-btn');
-    btn.disabled = true;
-    btn.textContent = 'Logging in...';
-
-    try {
-      const res = await fetch('/api/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        errEl.textContent = data.error || 'Login failed';
-        errEl.classList.remove('hidden');
-      } else {
-        window.location.hash = '/';
-        window.location.reload();
-      }
-    } catch {
-      errEl.textContent = 'Network error';
-      errEl.classList.remove('hidden');
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Login';
-  });
-
-  main.querySelector('#login-password').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') main.querySelector('#login-btn').click();
-  });
 }
 
 async function renderDownloadPage(main, shareId) {
