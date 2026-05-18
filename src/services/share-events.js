@@ -3,33 +3,32 @@ let clientId = 0;
 
 export function addClient(controller) {
   const id = ++clientId;
-  clients.set(id, controller);
+  const heartbeat = setInterval(() => {
+    try {
+      controller.enqueue(new TextEncoder().encode(`: heartbeat\n\n`));
+    } catch {
+      removeClient(id);
+    }
+  }, 25000);
+  clients.set(id, { controller, heartbeat });
   return id;
 }
 
 export function removeClient(id) {
-  clients.delete(id);
+  const client = clients.get(id);
+  if (client) {
+    clearInterval(client.heartbeat);
+    clients.delete(id);
+  }
 }
 
 export function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const [id, controller] of clients) {
+  for (const [id, { controller }] of clients) {
     try {
       controller.enqueue(new TextEncoder().encode(message));
     } catch {
-      clients.delete(id);
+      removeClient(id);
     }
   }
 }
-
-// Heartbeat to keep connections alive (below CF 30s timeout)
-setInterval(() => {
-  const ping = `: heartbeat\n\n`;
-  for (const [id, controller] of clients) {
-    try {
-      controller.enqueue(new TextEncoder().encode(ping));
-    } catch {
-      clients.delete(id);
-    }
-  }
-}, 25000);
