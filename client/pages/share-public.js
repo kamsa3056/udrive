@@ -56,7 +56,7 @@ async function renderUploadPage(main) {
   const uniqueDays = [...new Set(expiryOptions)].sort((a, b) => a - b);
 
   main.innerHTML = `
-    <div class="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
+    <div class="flex items-start md:items-center justify-center min-h-[calc(100vh-3rem)] p-4 pt-6 md:pt-4">
       <div class="w-full max-w-md">
         <div class="text-center mb-6">
           <span class="material-icons-outlined text-blue-600 text-5xl">cloud_upload</span>
@@ -114,16 +114,6 @@ async function renderUploadPage(main) {
             </div>
             <span id="progress-text" class="text-xs text-gray-500">0%</span>
           </div>
-        </div>
-
-        <div id="upload-result" class="hidden mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">File shared successfully!</p>
-          <div class="flex items-center gap-2">
-            <input type="text" id="share-link" readonly class="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
-            <button id="copy-link" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Copy</button>
-          </div>
-          <p id="share-expiry" class="text-xs text-gray-500 mt-2"></p>
-          <div id="share-qr" class="flex justify-center mt-3"></div>
         </div>
 
         <div id="upload-error" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -257,18 +247,8 @@ async function renderUploadPage(main) {
       });
 
       progressEl.classList.add('hidden');
-      const resultEl = main.querySelector('#upload-result');
       const shareLink = `${window.location.origin}/#/share/${result.shareId}`;
-      main.querySelector('#share-link').value = shareLink;
-      main.querySelector('#share-expiry').textContent = `Expires: ${new Date(result.expiresAt).toLocaleDateString()}`;
-      main.querySelector('#share-qr').innerHTML = generateQRCode(shareLink);
-      resultEl.classList.remove('hidden');
-
-      main.querySelector('#copy-link').addEventListener('click', () => {
-        navigator.clipboard.writeText(shareLink);
-        main.querySelector('#copy-link').textContent = 'Copied!';
-        setTimeout(() => { main.querySelector('#copy-link').textContent = 'Copy'; }, 2000);
-      });
+      showShareResultModal(shareLink, result.expiresAt);
 
     } catch (err) {
       progressEl.classList.add('hidden');
@@ -283,6 +263,41 @@ async function renderUploadPage(main) {
     const el = main.querySelector('#upload-error');
     main.querySelector('#error-text').textContent = msg;
     el.classList.remove('hidden');
+  }
+
+  function showShareResultModal(link, expiresAt) {
+    const existing = document.getElementById('share-result-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'share-result-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full relative">
+        <button id="share-modal-close" class="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <span class="material-icons-outlined text-xl">close</span>
+        </button>
+        <div class="text-center mb-4">
+          <span class="material-icons-outlined text-green-500 text-4xl">check_circle</span>
+          <p class="text-sm font-medium text-green-800 dark:text-green-200 mt-2">File shared successfully!</p>
+        </div>
+        <div class="flex justify-center mb-4">${generateQRCode(link)}</div>
+        <div class="flex items-center gap-2">
+          <input type="text" readonly value="${link}" class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded text-xs">
+          <button id="share-modal-copy" class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Copy</button>
+        </div>
+        <p class="text-xs text-gray-500 text-center mt-2">Expires: ${new Date(expiresAt).toLocaleDateString()}</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#share-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#share-modal-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(link);
+      modal.querySelector('#share-modal-copy').textContent = 'Copied!';
+      setTimeout(() => { modal.querySelector('#share-modal-copy').textContent = 'Copy'; }, 2000);
+    });
   }
 
   // Login toggle

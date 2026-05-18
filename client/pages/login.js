@@ -227,15 +227,6 @@ function renderUploadWithLogin(main, shareInfo) {
               </div>
             </div>
 
-            <div id="login-upload-result" class="hidden mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">Shared!</p>
-              <div class="flex items-center gap-2">
-                <input type="text" id="login-share-link" readonly class="flex-1 px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs">
-                <button id="login-copy-link" class="px-2 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Copy</button>
-              </div>
-              <div id="login-share-qr" class="flex justify-center mt-3"></div>
-            </div>
-
             <div id="login-upload-error" class="hidden mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
               <p id="login-error-upload-text" class="text-xs text-red-600 dark:text-red-400"></p>
             </div>
@@ -428,15 +419,7 @@ async function initLoginUpload(main, shareInfo) {
 
       progressEl.classList.add('hidden');
       const shareLink = `${window.location.origin}/#/share/${result.shareId}`;
-      main.querySelector('#login-share-link').value = shareLink;
-      main.querySelector('#login-share-qr').innerHTML = generateQRCode(shareLink);
-      main.querySelector('#login-upload-result').classList.remove('hidden');
-
-      main.querySelector('#login-copy-link').addEventListener('click', () => {
-        navigator.clipboard.writeText(shareLink);
-        main.querySelector('#login-copy-link').textContent = 'Copied!';
-        setTimeout(() => { main.querySelector('#login-copy-link').textContent = 'Copy'; }, 2000);
-      });
+      showShareResultModal(shareLink);
     } catch (err) {
       progressEl.classList.add('hidden');
       showError(err.message);
@@ -445,6 +428,40 @@ async function initLoginUpload(main, shareInfo) {
     uploadBtn.disabled = false;
     uploadBtn.textContent = 'Upload & Share';
   });
+
+  function showShareResultModal(link) {
+    const existing = document.getElementById('share-result-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'share-result-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full relative">
+        <button id="share-modal-close" class="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <span class="material-icons-outlined text-xl">close</span>
+        </button>
+        <div class="text-center mb-4">
+          <span class="material-icons-outlined text-green-500 text-4xl">check_circle</span>
+          <p class="text-sm font-medium text-green-800 dark:text-green-200 mt-2">File shared successfully!</p>
+        </div>
+        <div class="flex justify-center mb-4">${generateQRCode(link)}</div>
+        <div class="flex items-center gap-2">
+          <input type="text" readonly value="${link}" class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded text-xs">
+          <button id="share-modal-copy" class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Copy</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#share-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#share-modal-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(link);
+      modal.querySelector('#share-modal-copy').textContent = 'Copied!';
+      setTimeout(() => { modal.querySelector('#share-modal-copy').textContent = 'Copy'; }, 2000);
+    });
+  }
 
   function showError(msg) {
     main.querySelector('#login-error-upload-text').textContent = msg;
